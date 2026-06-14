@@ -1,0 +1,69 @@
+models:
+  - id: openai_fast
+    provider: openai
+    model: gpt-4.1-nano-2025-04-14
+    roles: [transform, generate]
+    benchmark_tier: smoke
+    pricing_mode: manual
+    input_usd_per_1k_tokens: 0.0001
+    output_usd_per_1k_tokens: 0.0004
+    timeout_seconds: 30
+    max_retries: 0
+
+  - id: gemini_fast
+    provider: gemini
+    model: gemini-3.1-flash-lite
+    roles: [transform, generate]
+    benchmark_tier: smoke
+    pricing_mode: manual
+    input_usd_per_1k_tokens: 0
+    output_usd_per_1k_tokens: 0
+    timeout_seconds: 30
+    max_retries: 0
+
+  - id: openrouter_fast
+    provider: openrouter
+    model: qwen/qwen-2.5-7b-instruct
+    roles: [transform, generate]
+    benchmark_tier: smoke
+    pricing_mode: manual
+    base_url: https://openrouter.ai/api/v1
+    input_usd_per_1k_tokens: 0
+    output_usd_per_1k_tokens: 0
+    timeout_seconds: 20
+    max_retries: 0
+
+  - id: nvidia_nim_fast
+    provider: nvidia_nim
+    model: meta/llama-4-maverick-17b-128e-instruct
+    roles: [transform, generate]
+    benchmark_tier: smoke
+    pricing_mode: free_quota
+    base_url: https://integrate.api.nvidia.com/v1
+    input_usd_per_1k_tokens: 0
+    output_usd_per_1k_tokens: 0
+    timeout_seconds: 30
+    max_retries: 0
+    billed_cost_usd_per_1k_input_tokens: 0
+    billed_cost_usd_per_1k_output_tokens: 0
+
+  - id: openai_judge_gpt5_mini
+    provider: openai
+    model: gpt-5-mini-2025-08-07
+    roles: [judge]
+    benchmark_tier: judge
+    pricing_mode: manual
+    input_usd_per_1k_tokens: 0
+    output_usd_per_1k_tokens: 0
+    timeout_seconds: 45
+    max_retries: 0
+
+embeddings:
+  - id: local_omlx_embedding
+    provider: openai_compatible
+    base_url_env: OMLX_HOST_URL
+    api_key_env: OMLX_API_KEY
+    model: Qwen3-Embedding-0.6B-4bit-DWQ
+    roles: [embedding, retrieval_index]
+    pricing_mode: local
+    billed_cost_usd_per_1k_tokens: 0

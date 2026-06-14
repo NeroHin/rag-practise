@@ -1,0 +1,35 @@
+dataset:
+  name: crud_rag_compact
+  eval_source_path: dataset/crud_split_merged.json
+  corpus_source_path: dataset/documents_dup_part_10_part_1
+  cases_output_path: dataset/crud_rag_20_cases.jsonl
+  distractors_output_path: dataset/crud_rag_100_distractors.jsonl
+  sample_size: 20
+  distractor_sample_size: 100
+  seed: 42
+
+transforms:
+  - baseline
+  - rewrite
+  - expand
+  - multi_query
+  - child_query
+  - hyde
+  - step_back
+
+retrieval:
+  top_k: 5
+  merge_strategy: reciprocal_rank_fusion
+  embedding_model_id: local_omlx_embedding
+  vector_index: faiss_flat_ip
+
+benchmark:
+  run_id: mock-crud-rag-compact
+  output_dir: reports/mock-crud-rag-compact
+  repeats: 1
+  timeout_seconds: 60
+  max_retries: 2
+  record_latency: true
+  record_cost: true
+  record_usage: true
+
