@@ -172,3 +172,19 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# .env
+.env
+
+# docs
+docs/
+
+# report
+reports/
+
+# Mac
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
