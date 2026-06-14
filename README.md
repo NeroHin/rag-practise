@@ -1,95 +1,124 @@
-# RAG 實踐手冊
+# rag-practise
 
-本專案旨在探索和實踐各種 RAG（檢索增強生成）技術，特別關注查詢優化和處理方面的技巧。
+Query Transformation experiments for compact RAG evaluation.
 
-## 查詢優化技術
+This repository compares several query transformation methods across multiple LLM
+providers, then evaluates retrieval and answer-support quality with deterministic
+metrics and LLM-as-a-Judge.
 
-<details>
-<summary><h3>1. 查詢擴充（Query Expansion）</h3></summary>
+## Scope
 
-#### 方法說明
-自動為原始查詢添加相關詞彙，包含同義詞、相關概念等，以提升檢索範圍。這個技術能夠彌補用戶查詢詞彙不足的問題，提高檢索的召回率。
+Implemented methods:
 
-#### 技術原理
-- 使用詞彙擴展技術識別同義詞
-- 利用知識圖譜找出相關概念
-- 基於語義向量計算相似詞彙
-- 結合領域知識進行概念擴展
+- `baseline`
+- `rewrite`
+- `expand`
+- `multi_query`
+- `child_query`
+- `hyde`
+- `step_back`
 
-#### 應用場景
-- 提升檢索召回率
-- 處理用戶查詢詞彙貧乏問題
-- 跨語言檢索支援
-- 專業術語擴展
+Main experiment setup:
 
-#### 實際效果展示
+- Dataset: CRUD-RAG compact
+- Cases: 20 QA cases
+- Distractors: 100 documents
+- Retrieval: FAISS flat inner product + Reciprocal Rank Fusion
+- Embedding: local OMLX OpenAI-compatible endpoint
+- Judge: OpenAI structured output with `gpt-5-mini-2025-08-07`
 
-原始查詢：「我想找關於胖橘貓咪的照片」
+## Setup
 
-擴充結果：
-- 橘色貓
-- 橘貓照片
-- 貓咪品種
-- 寵物圖片
-- 萌系貓咪
+```bash
+uv sync
+```
 
-</details>
+Required environment variables are listed in `.env.local`:
 
-<details>
-<summary><h3>2. 查詢重寫（Query Rewrite）</h3></summary>
+```bash
+OPENAI_API_KEY
+OPENROUTER_API_KEY
+GEMINI_API_KEY
+NVIDIA_API_KEY
+HUGGINGFACE_API_KEY
+OMLX_API_KEY
+OMLX_HOST_URL
+```
 
-#### 方法說明
-自動優化使用者的原始查詢語句，使其更符合檢索系統的特性。這個技術能夠將自然語言查詢轉換為更精確的檢索詞彙，提升檢索效果。
+Use `.env` for local secrets. `.env` is ignored by git.
 
-#### 技術原理
-- 使用 LLM 分析原始查詢的語意
-- 識別關鍵詞並進行優化
-- 去除冗餘詞彙，強化檢索核心概念
-- 適應不同檢索系統的特性
+## Dataset
 
-#### 應用場景
-- 語音轉文字查詢優化
-- 口語化查詢正規化
-- 多語言查詢統一
-- 檢索系統適配
+Prepared files are already under `dataset/`:
 
-#### 實際效果展示
+- `crud_rag_20_cases.jsonl`
+- `crud_rag_100_distractors.jsonl`
+- `documents_dup_part_10_part_1`
+- `crud_split_merged.json`
 
-原始查詢：「請問醫師子宮肌瘤術後的飲食需要注意什麼」
+Regenerate the compact dataset:
 
-重寫結果：「請問醫師，子宮肌瘤手術後的患者在飲食方面需要注意哪些事項，以避免并發症、加速恢復及保持身體健康？」
+```bash
+rag-practise datasets prepare crud-rag
+```
 
-</details>
+## Run
 
-<details>
-<summary><h2>效能比較</h2></summary>
+Build retrieval index metadata:
 
-在實驗中，我們比較了不同模型在查詢重寫任務上的表現：
+```bash
+rag-practise index build \
+  --config configs/experiment.crud-rag.yaml \
+  --embedding-provider omlx \
+  --embedding-model Qwen3-Embedding-0.6B-4bit-DWQ
+```
 
-- groq/llama-3.1-8b-instant: ~0.59 秒
-- groq/llama-3.3-70b-versatile: ~0.65 秒
+Run the E2E matrix with answer generation and judge:
 
-這些結果顯示，較小的模型在速度上可能具有優勢，但在輸出質量上可能需要進一步評估。
+```bash
+rag-practise experiment run-matrix-async \
+  --config configs/experiment.crud-rag.yaml \
+  --models-config configs/models.yaml \
+  --output-dir reports/model-matrix-crud-rag-compact-e2e \
+  --embedding-provider omlx \
+  --embedding-model Qwen3-Embedding-0.6B-4bit-DWQ \
+  --max-concurrency 4 \
+  --generate \
+  --generation-model-id openai_fast \
+  --generation-max-concurrency 4 \
+  --judge \
+  --judge-model-id openai_judge_gpt5_mini \
+  --judge-max-concurrency 4 \
+  --judge-retry-failed \
+  --judge-max-attempts 3
+```
 
-</details>
+Generate article charts from an existing judged report:
 
-<details>
-<summary><h2>後續優化方向</h2></summary>
+```bash
+python scripts/plot_query_transform_results.py \
+  --report-dir reports/model-matrix-crud-rag-compact-e2e-structured-judge \
+  --output-dir docs/assets/query-transformations
+```
 
-1. 擴充更多查詢優化技術
-   - HyDE（Hypothetical Document Embeddings）
-   - 多輪查詢分解
-   - 查詢意圖分類
-   
-2. 效能優化
-   - 模型量化
-   - 批次處理
-   - 快取機制
+`reports/` and `docs/` are ignored by git.
 
-3. 評估指標完善
-   - 查詢相關性
-   - 響應時間
-   - 資源使用率
+## Outputs
 
-</details>
+Experiment runs write:
+
+- `records.jsonl`
+- `records.csv`
+- `summary.csv`
+- `report.md`
+- optional judge checkpoint files
+
+Chart generation writes PNG/SVG figures and CSV comparison tables.
+
+## Validate
+
+```bash
+ruff check .
+python -m pytest -q
+```
 
